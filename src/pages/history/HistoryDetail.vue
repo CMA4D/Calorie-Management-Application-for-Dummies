@@ -69,11 +69,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useHistoryStore } from '@/stores/modules/history'
+import PageHeader from '@/components/common/layout/PageHeader.vue'
 
 // 定义组件名称
 defineOptions({
-  name: 'historyDetail'
+  name: 'HistoryDetail'
 })
 
 // 详情数据
@@ -106,21 +108,16 @@ const formatTime = (timestamp: string) => {
 
 // 页面加载时获取详情数据
 onMounted(() => {
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1]
-  const data = currentPage.$page?.options?.data
-  
-  if (data) {
-    try {
-      detailData.value = JSON.parse(decodeURIComponent(data))
-    } catch (error) {
-      console.error('解析详情数据失败：', error)
-      uni.showToast({
-        title: '数据加载失败',
-        icon: 'none'
-      })
-    }
+  const historyStore = useHistoryStore()
+  if (historyStore.currentDetail) {
+    detailData.value = historyStore.currentDetail
   }
+})
+
+// 页面卸载时清除数据
+onUnmounted(() => {
+  const historyStore = useHistoryStore()
+  historyStore.clearCurrentDetail()
 })
 </script>
 

@@ -22,14 +22,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import LoginHeader from './components/LoginHeader.vue'
-import LoginForm from './components/LoginForm.vue'
-import LoginFooter from './components/LoginFooter.vue'
+import { ref, onMounted } from 'vue'
+import { useUserStore } from '@/stores/modules/user'
+import LoginHeader from '@/components/auth/login/LoginHeader.vue'
+import LoginForm from '@/components/auth/login/LoginForm.vue'
+import LoginFooter from '@/components/auth/login/LoginFooter.vue'
 
 // 定义组件名称
 defineOptions({
-  name: 'login'
+  name: 'Login'
 })
 
 // 登录加载状态
@@ -38,36 +39,69 @@ const loading = ref(false)
 // 是否为开发环境
 const isDevelopment = process.env.NODE_ENV === 'development'
 
+// 用户状态管理
+const userStore = useUserStore()
+
+// 登录表单引用
+const loginFormRef = ref<InstanceType<typeof LoginForm> | null>(null)
+
 // 处理登录逻辑
-const handleLogin = async (formData: { username: string; password: string }) => {
+const handleLogin = async (data: { username: string; password: string; remember: boolean }) => {
   try {
     loading.value = true
-    // TODO: 实现实际的登录逻辑
-    console.log('登录信息：', formData)
     
-    // 模拟登录延迟
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // 登录
+    const success = await userStore.login(data.username, data.password, data.remember)
     
-    // 登录成功后跳转
-    uni.showToast({
-      title: '登录成功',
-      icon: 'success'
-    })
-    
-    // 暂时注释掉跳转，等待主页创建完成
-    // uni.reLaunch({
-    //   url: '/pages/Home'
-    // })
+    if (success) {
+      // 如果选择记住密码，保存到本地存储
+      if (data.remember) {
+        uni.setStorageSync('rememberedUsername', data.username)
+        uni.setStorageSync('rememberedPassword', data.password)
+      } else {
+        // 如果未选择记住密码，清除本地存储
+        uni.removeStorageSync('rememberedUsername')
+        uni.removeStorageSync('rememberedPassword')
+      }
+      
+      uni.showToast({
+        title: '登录成功',
+        icon: 'success'
+      })
+      
+      // 延迟跳转
+      setTimeout(() => {
+        uni.reLaunch({
+          url: '/pages/home/Home'
+        })
+      }, 1500)
+    } else {
+      uni.showToast({
+        title: '用户名或密码错误',
+        icon: 'none'
+      })
+    }
   } catch (error) {
     console.error('登录失败：', error)
     uni.showToast({
-      title: '登录失败，请稍后重试',
+      title: '登录失败，请重试',
       icon: 'error'
     })
   } finally {
     loading.value = false
   }
 }
+
+// 页面加载时检查是否有记住的账号密码
+onMounted(() => {
+  const rememberedUsername = uni.getStorageSync('rememberedUsername')
+  const rememberedPassword = uni.getStorageSync('rememberedPassword')
+  
+  if (rememberedUsername && rememberedPassword) {
+    // 触发登录表单的记住密码
+    loginFormRef.value?.setRememberedCredentials(rememberedUsername, rememberedPassword)
+  }
+})
 
 // 模拟登录成功
 const simulateLoginSuccess = async () => {
@@ -79,7 +113,7 @@ const simulateLoginSuccess = async () => {
   })
   setTimeout(() => {
     uni.reLaunch({
-      url: '/pages/Home'
+      url: '/pages/home/Home'
     })
   }, 1500)
   loading.value = false
@@ -94,7 +128,7 @@ const simulateUserNotExist = () => {
     success: () => {
       // 可以选择跳转到注册页面
       uni.navigateTo({
-        url: '/pages/Register'
+        url: '/pages/auth/Register'
       })
     }
   })
@@ -110,7 +144,7 @@ const simulatePasswordError = () => {
     success: (res) => {
       if (res.confirm) {
         uni.navigateTo({
-          url: '/pages/ResetPassword'
+          url: '/pages/auth/ResetPassword'
         })
       }
     }

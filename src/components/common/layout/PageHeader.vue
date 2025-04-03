@@ -1,33 +1,35 @@
 <template>
-  <view class="reset-password-header">
-    <!-- 返回按钮 -->
+  <view class="page-header">
     <view class="back-button" @click="handleBack">
       <text class="iconfont icon-back">←</text>
     </view>
-    
-    <!-- 标题 -->
-    <text class="title">找回密码</text>
+    <text class="title">{{ title }}</text>
   </view>
 </template>
 
 <script setup lang="ts">
 // 定义组件名称
 defineOptions({
-  name: 'resetPasswordHeader'
+  name: 'pageHeader'
 })
 
-// 处理返回按钮点击
+// 定义属性
+const props = defineProps<{
+  title: string
+}>()
+
+// 处理返回
 const handleBack = () => {
   uni.navigateBack()
 }
 </script>
 
 <style lang="scss">
-/* 找回密码头部样式 */
-.reset-password-header {
+/* 页面头部样式 */
+.page-header {
   display: flex;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   
   /* 返回按钮样式 */
   .back-button {

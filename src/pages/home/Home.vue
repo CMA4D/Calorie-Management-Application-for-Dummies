@@ -22,27 +22,36 @@
     />
     
     <!-- 历史记录按钮 -->
-    <view class="history-button" @click="goToHistory">
-      <text>历史记录</text>
-    </view>
+    <view class="history-button" @click="goToHistory">历史记录</view>
+    
+    <!-- 退出登录按钮 -->
+    <view class="logout-button" @click="handleLogout">退出登录</view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import HomeHeader from './components/HomeHeader.vue'
-import HomeScanner from './components/HomeScanner.vue'
-import HomeAdvice from './components/HomeAdvice.vue'
+import { useUserStore } from '@/stores/modules/user'
+import { useFoodHistory } from '@/hooks/useFoodHistory'
+import HomeHeader from '@/components/business/food/HomeHeader.vue'
+import HomeScanner from '@/components/business/food/HomeScanner.vue'
+import HomeAdvice from '@/components/business/food/HomeAdvice.vue'
 
 // 定义组件名称
 defineOptions({
-  name: 'home'
+  name: 'Home'
 })
+
+// 用户状态管理
+const userStore = useUserStore()
+
+// 食物历史记录 hook
+const { addHistory, historyList } = useFoodHistory()
 
 // 用户信息
 const userInfo = ref({
-  nickname: '测试用户',
-  avatar: '/static/logo.png'
+  nickname: userStore.userInfo?.nickname || '测试用户',
+  avatar: userStore.userInfo?.avatar || '/static/logo.png'
 })
 
 // 扫描状态
@@ -105,38 +114,44 @@ const handleScan = async () => {
 
 // 处理保存
 const handleSave = async () => {
-  if (!foodData.value || !calorieData.value) return
-  
   try {
-    // 保存到本地
-    const history = uni.getStorageSync('foodHistory') || []
-    history.unshift({
+    if (!foodData.value || !calorieData.value) {
+      uni.showToast({
+        title: '请先扫描食物',
+        icon: 'none'
+      })
+      return
+    }
+
+    // 检查是否已存在相同记录
+    const existingRecord = historyList.value.find(record => 
+      record.image === foodData.value?.image && 
+      record.timestamp === new Date().toISOString()
+    )
+
+    if (existingRecord) {
+      uni.showToast({
+        title: '该记录已保存',
+        icon: 'none'
+      })
+      return
+    }
+
+    // 保存记录
+    await addHistory({
       ...foodData.value,
       ...calorieData.value,
       timestamp: new Date().toISOString()
     })
-    uni.setStorageSync('foodHistory', history)
-    
-    // TODO: 上传到云端
-    // await uni.request({
-    //   url: 'YOUR_API_URL/history',
-    //   method: 'POST',
-    //   data: {
-    //     ...foodData.value,
-    //     ...calorieData.value,
-    //     timestamp: new Date().toISOString()
-    //   }
-    // })
     
     uni.showToast({
       title: '保存成功',
       icon: 'success'
     })
     
-    // 清空当前数据
+    // 清空当前数据，但保持显示
     foodData.value = null
     calorieData.value = null
-    
   } catch (error) {
     console.error('保存失败：', error)
     uni.showToast({
@@ -149,7 +164,23 @@ const handleSave = async () => {
 // 跳转到历史记录
 const goToHistory = () => {
   uni.navigateTo({
-    url: '/pages/History'
+    url: '/pages/history/History'
+  })
+}
+
+// 处理退出登录
+const handleLogout = () => {
+  uni.showModal({
+    title: '提示',
+    content: '确定要退出登录吗？',
+    success: (res) => {
+      if (res.confirm) {
+        userStore.logout()
+        uni.reLaunch({
+          url: '/pages/auth/Login'
+        })
+      }
+    }
   })
 }
 </script>
@@ -166,10 +197,24 @@ const goToHistory = () => {
 /* 历史记录按钮样式 */
 .history-button {
   position: fixed;
-  bottom: 40px;
+  bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
   background-color: #007AFF;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 退出登录按钮样式 */
+.logout-button {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ff3b30;
   color: #fff;
   padding: 12px 24px;
   border-radius: 24px;
