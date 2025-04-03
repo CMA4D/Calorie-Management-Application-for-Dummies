@@ -83,4 +83,4 @@ npm run build:mp-weixin
 
 ## 许可证
 
-MIT 
+Apache 2.0 License
