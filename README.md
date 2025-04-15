@@ -1,6 +1,6 @@
 # Calorie-Management-Application-for-Dummies
 It's literally in the name!
-##树莓派脚本
+## 树莓派脚本
 功能基本完成，功能简介：
 http协议小服务器 地址http://<主机ip>:8080 (注树莓派固定ip地址为10.29.113.246，即访问设备端地址为http://10.29.113.246:8080)
  get 请求/capture捕获并发送图片，请求/measure测量质量并以报文形式发回，请求/download下载上次所拍照片，请求/upload上传图片给服务器
